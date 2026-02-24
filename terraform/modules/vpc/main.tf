@@ -130,7 +130,7 @@ resource "aws_route_table" "public" {
 
 #------------------------------------------------------------------------------
 # PRIVATE ROUTE TABLE
-# Routes traffic to NAT Gateway
+# Routes traffic to NAT Gateway for internet access
 #------------------------------------------------------------------------------
 
 resource "aws_route_table" "private" {
