@@ -13,8 +13,16 @@ resource "aws_subnet" "Public" {
   availability_zone       = each.value
   map_public_ip_on_launch = true
 
-  tags = merge(var.tags, { Name = "public-subnet-${each.value}" })
+  tags = merge(
+    var.tags,
+    {
+      Name                                        = "public-subnet-${each.value}"
+      "kubernetes.io/role/elb"                    = "1"
+      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    }
+  )
 }
+
 
 resource "aws_internet_gateway" "igw" {
   vpc_id = aws_vpc.main.id
@@ -46,7 +54,14 @@ resource "aws_subnet" "Private" {
   cidr_block        = each.key
   availability_zone = each.value
 
-  tags = merge(var.tags, { Name = "private-subnet-${each.value}" })
+  tags = merge(
+    var.tags,
+    {
+      Name                                        = "private-subnet-${each.value}"
+      "kubernetes.io/role/internal-elb"           = "1"
+      "kubernetes.io/cluster/${var.cluster_name}" = "shared"
+    }
+  )
 }
 
 resource "aws_route_table" "private_rt" {
