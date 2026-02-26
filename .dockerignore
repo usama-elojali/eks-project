@@ -1,0 +1,20 @@
+# Git
+.git
+.gitignore
+
+# Terraform
+terraform/
+
+# Documentation
+*.md
+LICENSE.txt
+
+# Build files
+app/Rakefile
+app/.jshintrc
+app/meta/
+app/CONTRIBUTING.md
+
+# Docker
+Dockerfile
+.dockerignore
