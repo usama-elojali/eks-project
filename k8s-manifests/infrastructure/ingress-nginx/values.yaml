@@ -1,0 +1,40 @@
+controller:
+  # High availability - 2 replicas across AZs
+  replicaCount: 2
+
+  # Service configuration - AWS Load Balancer Controller creates ALB
+  service:
+    type: LoadBalancer
+    annotations:
+      # Use ALB (Application Load Balancer) - requires AWS Load Balancer Controller
+      service.beta.kubernetes.io/aws-load-balancer-type: external
+      service.beta.kubernetes.io/aws-load-balancer-nlb-target-type: ip
+      service.beta.kubernetes.io/aws-load-balancer-scheme: internet-facing
+      # Enable cross-zone load balancing
+      service.beta.kubernetes.io/aws-load-balancer-cross-zone-load-balancing-enabled: "true"
+
+  # Resource management
+  resources:
+    requests:
+      cpu: 100m
+      memory: 128Mi
+    limits:
+      cpu: 200m
+      memory: 256Mi
+
+  # Metrics for Prometheus (future monitoring ticket)
+  metrics:
+    enabled: true
+    serviceMonitor:
+      enabled: false  # Enable when Prometheus is installed
+
+  # Pod anti-affinity - spread across nodes/AZs
+  affinity:
+    podAntiAffinity:
+      preferredDuringSchedulingIgnoredDuringExecution:
+        - weight: 100
+          podAffinityTerm:
+            labelSelector:
+              matchLabels:
+                app.kubernetes.io/name: ingress-nginx
+            topologyKey: topology.kubernetes.io/zone

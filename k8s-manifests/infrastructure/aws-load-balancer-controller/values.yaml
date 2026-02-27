@@ -1,0 +1,41 @@
+# AWS Load Balancer Controller Helm Values
+# Requires IAM role created by Terraform (IRSA)
+
+clusterName: eks-cluster  # Will be updated after Terraform creates cluster
+
+serviceAccount:
+  create: true
+  name: aws-load-balancer-controller
+  annotations:
+    # IAM role ARN - created by Terraform, update after cluster creation
+    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aws-load-balancer-controller-role
+
+# Region where EKS cluster is deployed
+region: eu-west-2
+
+# VPC ID - update after Terraform creates VPC
+vpcId: vpc-xxxxxxxxx
+
+# High availability - 2 replicas
+replicaCount: 2
+
+# Resource management
+resources:
+  requests:
+    cpu: 100m
+    memory: 128Mi
+  limits:
+    cpu: 200m
+    memory: 256Mi
+
+# Enable shield, waf, wafv2 (optional - for WAF integration)
+enableShield: false
+enableWaf: false
+enableWafv2: false
+
+# Pod disruption budget for HA
+podDisruptionBudget:
+  minAvailable: 1
+
+# Logging
+logLevel: info

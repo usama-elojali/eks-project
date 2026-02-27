@@ -1,0 +1,29 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: game-2048
+  annotations:
+    # Use NGINX Ingress Controller
+    kubernetes.io/ingress.class: nginx
+    # SSL redirect (HTTP → HTTPS)
+    nginx.ingress.kubernetes.io/ssl-redirect: "true"
+    # For ExternalDNS to create Route 53 record
+    external-dns.alpha.kubernetes.io/hostname: eks.elojali-devops.com
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: eks.elojali-devops.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: game-2048
+                port:
+                  number: 80
+  # TLS configuration - CertManager will provide the certificate
+  tls:
+    - hosts:
+        - eks.elojali-devops.com
+      secretName: game-2048-tls
