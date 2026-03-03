@@ -1,0 +1,51 @@
+# ExternalDNS Helm Values
+# Automatically creates Route53 DNS records from Ingress resources
+
+# Service account with IRSA
+serviceAccount:
+  create: true
+  name: external-dns
+  annotations:
+    # IAM role ARN - update after EKS module is deployed
+    eks.amazonaws.com/role-arn: "arn:aws:iam::367933905775:role/eks-cluster-external-dns"
+
+# AWS provider configuration
+provider: aws
+
+# Only manage records in these hosted zones
+domainFilters:
+  - elojali-devops.com
+
+# Prevent ExternalDNS from deleting records it didn't create
+policy: sync
+
+# Only watch Ingress resources (not Services)
+sources:
+  - ingress
+
+# AWS-specific settings
+aws:
+  region: us-east-1
+  zoneType: public
+
+# How often to sync DNS records
+interval: 1m
+
+# Log level
+logLevel: info
+
+# Resource limits
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# Only one replica needed
+replicaCount: 1
+
+# Use txt records for ownership tracking
+txtOwnerId: eks-cluster
+txtPrefix: external-dns-

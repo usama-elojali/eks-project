@@ -8,13 +8,13 @@ serviceAccount:
   name: aws-load-balancer-controller
   annotations:
     # IAM role ARN - created by Terraform, update after cluster creation
-    eks.amazonaws.com/role-arn: arn:aws:iam::ACCOUNT_ID:role/aws-load-balancer-controller-role
+    eks.amazonaws.com/role-arn: arn:aws:iam::367933905775:role/eks-cluster-aws-lb-controller
 
 # Region where EKS cluster is deployed
-region: eu-west-2
+region: us-east-1
 
 # VPC ID - update after Terraform creates VPC
-vpcId: vpc-xxxxxxxxx
+vpcId: vpc-095c250702003bd27
 
 # High availability - 2 replicas
 replicaCount: 2
