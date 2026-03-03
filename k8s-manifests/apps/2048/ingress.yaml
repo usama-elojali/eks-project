@@ -9,6 +9,7 @@ metadata:
     nginx.ingress.kubernetes.io/ssl-redirect: "true"
     # For ExternalDNS to create Route 53 record
     external-dns.alpha.kubernetes.io/hostname: eks.elojali-devops.com
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
 spec:
   ingressClassName: nginx
   rules:

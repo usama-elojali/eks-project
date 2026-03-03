@@ -98,14 +98,13 @@ resource "aws_iam_role_policy_attachment" "external_dns" {
 # Allows AWS LB Controller to create ALBs/NLBs
 #------------------------------------------------------------------------------
 
-# Policy document - what AWS LB Controller can do
+# Policy document - OFFICIAL AWS Load Balancer Controller IAM Policy
+# Source: https://raw.githubusercontent.com/kubernetes-sigs/aws-load-balancer-controller/main/docs/install/iam_policy.json
 data "aws_iam_policy_document" "aws_lb_controller" {
+  # 1. Create service-linked role for ELB
   statement {
-    sid    = "IAMCreateServiceLinkedRole"
-    effect = "Allow"
-    actions = [
-      "iam:CreateServiceLinkedRole"
-    ]
+    effect    = "Allow"
+    actions   = ["iam:CreateServiceLinkedRole"]
     resources = ["*"]
     condition {
       test     = "StringEquals"
@@ -114,8 +113,8 @@ data "aws_iam_policy_document" "aws_lb_controller" {
     }
   }
 
+  # 2. Read-only EC2 and ELB permissions (for discovery)
   statement {
-    sid    = "EC2Permissions"
     effect = "Allow"
     actions = [
       "ec2:DescribeAccountAttributes",
@@ -131,59 +130,252 @@ data "aws_iam_policy_document" "aws_lb_controller" {
       "ec2:DescribeTags",
       "ec2:GetCoipPoolUsage",
       "ec2:DescribeCoipPools",
-      "ec2:CreateSecurityGroup",
-      "ec2:DeleteSecurityGroup",
+      "ec2:GetSecurityGroupsForVpc",
+      "ec2:DescribeIpamPools",
+      "ec2:DescribeRouteTables",
+      "elasticloadbalancing:DescribeLoadBalancers",
+      "elasticloadbalancing:DescribeLoadBalancerAttributes",
+      "elasticloadbalancing:DescribeListeners",
+      "elasticloadbalancing:DescribeListenerCertificates",
+      "elasticloadbalancing:DescribeSSLPolicies",
+      "elasticloadbalancing:DescribeRules",
+      "elasticloadbalancing:DescribeTargetGroups",
+      "elasticloadbalancing:DescribeTargetGroupAttributes",
+      "elasticloadbalancing:DescribeTargetHealth",
+      "elasticloadbalancing:DescribeTags",
+      "elasticloadbalancing:DescribeTrustStores",
+      "elasticloadbalancing:DescribeListenerAttributes",
+      "elasticloadbalancing:DescribeCapacityReservation"
+    ]
+    resources = ["*"]
+  }
+
+  # 3. Cognito, ACM, IAM certs, WAF, Shield permissions
+  statement {
+    effect = "Allow"
+    actions = [
+      "cognito-idp:DescribeUserPoolClient",
+      "acm:ListCertificates",
+      "acm:DescribeCertificate",
+      "iam:ListServerCertificates",
+      "iam:GetServerCertificate",
+      "waf-regional:GetWebACL",
+      "waf-regional:GetWebACLForResource",
+      "waf-regional:AssociateWebACL",
+      "waf-regional:DisassociateWebACL",
+      "wafv2:GetWebACL",
+      "wafv2:GetWebACLForResource",
+      "wafv2:AssociateWebACL",
+      "wafv2:DisassociateWebACL",
+      "shield:GetSubscriptionState",
+      "shield:DescribeProtection",
+      "shield:CreateProtection",
+      "shield:DeleteProtection"
+    ]
+    resources = ["*"]
+  }
+
+  # 4. Security group ingress rules
+  statement {
+    effect = "Allow"
+    actions = [
       "ec2:AuthorizeSecurityGroupIngress",
-      "ec2:RevokeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress"
+    ]
+    resources = ["*"]
+  }
+
+  # 5. Create security groups
+  statement {
+    effect    = "Allow"
+    actions   = ["ec2:CreateSecurityGroup"]
+    resources = ["*"]
+  }
+
+  # 6. Tag security groups on creation
+  statement {
+    effect    = "Allow"
+    actions   = ["ec2:CreateTags"]
+    resources = ["arn:aws:ec2:*:*:security-group/*"]
+    condition {
+      test     = "StringEquals"
+      variable = "ec2:CreateAction"
+      values   = ["CreateSecurityGroup"]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+  }
+
+  # 7. Manage tags on controller-owned security groups
+  statement {
+    effect = "Allow"
+    actions = [
       "ec2:CreateTags",
       "ec2:DeleteTags"
     ]
-    resources = ["*"]
+    resources = ["arn:aws:ec2:*:*:security-group/*"]
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["true"]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
   }
 
+  # 8. Manage controller-owned security groups
   statement {
-    sid    = "ELBPermissions"
     effect = "Allow"
     actions = [
-      "elasticloadbalancing:*"
+      "ec2:AuthorizeSecurityGroupIngress",
+      "ec2:RevokeSecurityGroupIngress",
+      "ec2:DeleteSecurityGroup"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+  }
+
+  # 9. Create load balancers and target groups (with tagging requirement)
+  statement {
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:CreateLoadBalancer",
+      "elasticloadbalancing:CreateTargetGroup"
+    ]
+    resources = ["*"]
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+  }
+
+  # 10. Create/delete listeners and rules
+  statement {
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:CreateListener",
+      "elasticloadbalancing:DeleteListener",
+      "elasticloadbalancing:CreateRule",
+      "elasticloadbalancing:DeleteRule"
     ]
     resources = ["*"]
   }
 
+  # 11. Manage tags on controller-owned LBs and target groups
   statement {
-    sid    = "CognitoPermissions"
     effect = "Allow"
     actions = [
-      "cognito-idp:DescribeUserPoolClient"
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:RemoveTags"
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+    ]
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["true"]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
   }
 
+  # 12. Manage tags on listeners and rules
   statement {
-    sid    = "ACMPermissions"
     effect = "Allow"
     actions = [
-      "acm:ListCertificates",
-      "acm:DescribeCertificate"
+      "elasticloadbalancing:AddTags",
+      "elasticloadbalancing:RemoveTags"
     ]
-    resources = ["*"]
+    resources = [
+      "arn:aws:elasticloadbalancing:*:*:listener/net/*/*/*",
+      "arn:aws:elasticloadbalancing:*:*:listener/app/*/*/*",
+      "arn:aws:elasticloadbalancing:*:*:listener-rule/net/*/*/*",
+      "arn:aws:elasticloadbalancing:*:*:listener-rule/app/*/*/*"
+    ]
   }
 
+  # 13. Modify/delete controller-owned resources
   statement {
-    sid    = "WAFPermissions"
     effect = "Allow"
     actions = [
-      "waf-regional:*",
-      "wafv2:*"
+      "elasticloadbalancing:ModifyLoadBalancerAttributes",
+      "elasticloadbalancing:SetIpAddressType",
+      "elasticloadbalancing:SetSecurityGroups",
+      "elasticloadbalancing:SetSubnets",
+      "elasticloadbalancing:DeleteLoadBalancer",
+      "elasticloadbalancing:ModifyTargetGroup",
+      "elasticloadbalancing:ModifyTargetGroupAttributes",
+      "elasticloadbalancing:DeleteTargetGroup",
+      "elasticloadbalancing:ModifyListenerAttributes",
+      "elasticloadbalancing:ModifyCapacityReservation",
+      "elasticloadbalancing:ModifyIpPools"
     ]
     resources = ["*"]
+    condition {
+      test     = "Null"
+      variable = "aws:ResourceTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
   }
 
+  # 14. Tag resources on creation
   statement {
-    sid    = "ShieldPermissions"
+    effect    = "Allow"
+    actions   = ["elasticloadbalancing:AddTags"]
+    resources = [
+      "arn:aws:elasticloadbalancing:*:*:targetgroup/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/net/*/*",
+      "arn:aws:elasticloadbalancing:*:*:loadbalancer/app/*/*"
+    ]
+    condition {
+      test     = "StringEquals"
+      variable = "elasticloadbalancing:CreateAction"
+      values   = ["CreateTargetGroup", "CreateLoadBalancer"]
+    }
+    condition {
+      test     = "Null"
+      variable = "aws:RequestTag/elbv2.k8s.aws/cluster"
+      values   = ["false"]
+    }
+  }
+
+  # 15. Register/deregister targets
+  statement {
     effect = "Allow"
     actions = [
-      "shield:*"
+      "elasticloadbalancing:RegisterTargets",
+      "elasticloadbalancing:DeregisterTargets"
+    ]
+    resources = ["arn:aws:elasticloadbalancing:*:*:targetgroup/*/*"]
+  }
+
+  # 16. Manage listeners, certificates, rules, WAF
+  statement {
+    effect = "Allow"
+    actions = [
+      "elasticloadbalancing:SetWebAcl",
+      "elasticloadbalancing:ModifyListener",
+      "elasticloadbalancing:AddListenerCertificates",
+      "elasticloadbalancing:RemoveListenerCertificates",
+      "elasticloadbalancing:ModifyRule",
+      "elasticloadbalancing:SetRulePriorities"
     ]
     resources = ["*"]
   }

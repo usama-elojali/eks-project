@@ -1,0 +1,23 @@
+# ClusterIssuer for Let's Encrypt Production
+# Issues real, trusted TLS certificates
+apiVersion: cert-manager.io/v1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-prod
+spec:
+  acme:
+    # Let's Encrypt production server
+    server: https://acme-v02.api.letsencrypt.org/directory
+    
+    # Your email for certificate expiry notifications
+    email: uelojali@gmail.com
+    
+    # Secret to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-prod-account-key
+    
+    # HTTP-01 challenge: proves domain ownership via HTTP
+    solvers:
+      - http01:
+          ingress:
+            class: nginx

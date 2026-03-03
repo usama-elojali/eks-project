@@ -1,0 +1,28 @@
+# CertManager Helm Values
+# Automatically provisions TLS certificates from Let's Encrypt
+
+# Install CRDs (Custom Resource Definitions)
+# Required for Certificate, ClusterIssuer, etc.
+crds:
+  enabled: true
+
+# Replica count for HA
+replicaCount: 2
+
+# Resource limits
+resources:
+  requests:
+    cpu: 50m
+    memory: 64Mi
+  limits:
+    cpu: 100m
+    memory: 128Mi
+
+# Prometheus metrics (for monitoring later)
+prometheus:
+  enabled: true
+
+# Pod disruption budget for HA
+podDisruptionBudget:
+  enabled: true
+  minAvailable: 1
