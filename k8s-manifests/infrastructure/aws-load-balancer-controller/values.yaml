@@ -14,7 +14,7 @@ serviceAccount:
 region: us-east-1
 
 # VPC ID - update after Terraform creates VPC
-vpcId: vpc-0099f3b2d61cd40ee
+vpcId: vpc-0d0cef6652ec40625
 
 # High availability - 2 replicas
 replicaCount: 2
