@@ -5,7 +5,7 @@ metadata:
   labels:
     app: game-2048
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: game-2048
