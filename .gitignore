@@ -5,9 +5,10 @@
 *.tfplan
 crash.log
 
-# Sensitive files
+# Sensitive files (but allow environment configs - no secrets)
 *.tfvars
 !example.tfvars
+!terraform/environments/*/terraform.tfvars
 
 # macOS
 .DS_Store
