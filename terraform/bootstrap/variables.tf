@@ -23,3 +23,15 @@ variable "lock_table_name" {
   type        = string
   default     = "eks-terraform-locks"
 }
+
+variable "github_org" {
+  description = "GitHub organization or username"
+  type        = string
+  default     = "usama-elojali"
+}
+
+variable "github_repo" {
+  description = "GitHub repository name"
+  type        = string
+  default     = "eks-project"
+}
