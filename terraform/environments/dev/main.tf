@@ -45,4 +45,4 @@ module "eks" {
 
   environment  = var.environment
   project_name = var.project_name
-}
+}# Trigger CI test
