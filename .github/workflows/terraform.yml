@@ -66,9 +66,15 @@ jobs:
       - name: Terraform Plan
         id: plan
         run: |
+          set +e
           terraform plan -no-color -out=tfplan -detailed-exitcode
+          PLAN_EXIT_CODE=$?
+          echo "exit_code=$PLAN_EXIT_CODE" >> $GITHUB_OUTPUT
+          if [ $PLAN_EXIT_CODE -eq 1 ]; then
+            exit 1
+          fi
+          exit 0
         working-directory: ${{ env.WORKING_DIR }}
-        continue-on-error: true
 
       - name: Post Plan to PR
         if: github.event_name == 'pull_request'
@@ -88,11 +94,6 @@ jobs:
               repo: context.repo.repo,
               body: output
             })
-
-      - name: Plan Status
-        if: steps.plan.outcome == 'failure'
-        run: exit 1
-      
   
   terraform-apply:
     name: Terraform Apply
