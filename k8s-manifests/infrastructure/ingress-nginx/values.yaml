@@ -26,7 +26,7 @@ controller:
   metrics:
     enabled: true
     serviceMonitor:
-      enabled: false  # Enable when Prometheus is installed
+      enabled: true  # Enable when Prometheus is installed
 
   # Pod anti-affinity - spread across nodes/AZs
   affinity:
